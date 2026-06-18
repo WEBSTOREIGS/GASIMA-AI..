@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>GASIMA AI - CYBER CORE SYSTEM</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #bg-video, #loader-video {
+            position: fixed; right: 0; bottom: 0; min-width: 100%; min-height: 100%;
+            width: auto; height: auto; z-index: -10; object-fit: cover; opacity: 0.65;
+            filter: grayscale(0%) contrast(105%) brightness(75%);
+        }
+        #loader-video { opacity: 0.80; filter: contrast(110%) brightness(85%); }
+        .glass-panel {
+            background: rgba(3, 3, 5, 0.35); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.09); box-shadow: 0 35px 80px -20px rgba(0, 0, 0, 0.8);
+        }
+        .chat-container { flex: 1 1 0%; overflow-y: auto !important; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        .floating-footer {
+            position: fixed; bottom: 0; left: 0; width: 100%; z-index: 40; padding-left: 1rem; padding-right: 1rem;
+            padding-top: 0.75rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 70%, rgba(0,0,0,0) 100%);
+        }
+        .neon-glow { box-shadow: 0 0 40px rgba(255, 255, 255, 0.04), inset 0 0 20px rgba(255, 255, 255, 0.01); }
+        .neon-text { text-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 0 0 30px rgba(255, 255, 255, 0.1); }
+        .bar { width: 2px; height: 3px; background-color: #ffffff; animation: bounce 0.5s ease infinite alternate; transition: all 0.2s ease; }
+        .bar:nth-child(2) { animation-delay: 0.1s; }
+        .bar:nth-child(3) { animation-delay: 0.2s; }
+        .bar:nth-child(4) { animation-delay: 0.3s; }
+        @keyframes bounce { from { height: 3px; } to { height: 14px; } }
+        .voice-wave { display: inline-flex; align-items: center; gap: 3px; height: 20px; }
+        .voice-bar { width: 3px; height: 4px; background-color: #ffffff; border-radius: 99px; animation: wave 0.6s ease-in-out infinite alternate; }
+        .voice-bar:nth-child(2) { animation-delay: 0.15s; height: 8px; }
+        .voice-bar:nth-child(3) { animation-delay: 0.3s; height: 12px; }
+        .voice-bar:nth-child(4) { animation-delay: 0.45s; height: 6px; }
+        @keyframes wave { from { transform: scaleY(1); } to { transform: scaleY(2.8); } }
+        .pulse-ring { border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 50%; height: 100px; width: 100px; position: absolute; animation: pulsate 2s ease-out infinite; opacity: 0; }
+        @keyframes pulsate { 0% { transform: scale(0.5, 0.5); opacity: 0.0; } 50% { opacity: 0.7; } 100% { transform: scale(1.3, 1.3); opacity: 0.0; } }
+        @keyframes swing { 0%, 100% { transform: rotate(0deg); } 20% { transform: rotate(15deg); } 40% { transform: rotate(-10deg); } 60% { transform: rotate(5deg); } 80% { transform: rotate(-5deg); } }
+        .animate-swing { animation: swing 1.2s ease-in-out infinite; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="text-zinc-300 flex flex-col h-screen w-screen justify-between p-0 m-0 relative bg-black select-none">
+
+    <div id="preloader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-all duration-700">
+        <video autoplay loop muted playsinline id="loader-video">
+            <source src="loading.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-b from-black/10 via-black/40 to-black z-0"></div>
+        <div class="z-10 flex flex-col items-center gap-7 px-6 text-center max-w-sm">
+            <div class="relative w-24 h-24 flex items-center justify-center">
+                <div class="pulse-ring"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-t-white border-r-zinc-800 border-b-zinc-900 border-l-zinc-700 animate-spin" style="animation-duration: 0.7s;"></div>
+                <i class="fa-solid fa-microchip text-white text-2xl animate-pulse"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black tracking-[0.3em] text-white uppercase neon-text">GASIMA AI</h2>
+                <p class="text-[9px] text-zinc-500 font-bold tracking-widest uppercase mt-1.5">SINKRONISASI SISTEM KECERDASAN...</p>
+            </div>
+            <div class="w-56 h-[3px] bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
+                <div id="preload-progress" class="h-full bg-white transition-all duration-200 w-0"></div>
+            </div>
+        </div>
+    </div>
+    <div id="welcomeNotification" class="fixed top-4 left-1/2 -translate-x-1/2 z-[110] w-[90%] max-w-sm glass-panel p-4 rounded-2xl border border-zinc-800/80 flex items-center gap-3.5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] opacity-0 translate-y-[-100px] transition-all duration-700 pointer-events-none">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-black shadow-md shrink-0">
+            <i class="fa-solid fa-bell text-sm animate-swing"></i>
+        </div>
+        <div class="flex-1 overflow-hidden">
+            <div class="flex items-center justify-between w-full">
+                <span class="text-[9px] font-black tracking-widest text-zinc-500 uppercase">SYSTEM NOTICE</span>
+                <span class="text-[8px] font-medium text-zinc-600 font-mono">JUST NOW</span>
+            </div>
+            <h4 class="text-xs font-black text-white uppercase tracking-wide mt-0.5">AKSES MASUK BERHASIL</h4>
+            <p id="welcomeUserTarget" class="text-[11px] text-zinc-400 font-bold truncate mt-0.5 neon-text"></p>
+        </div>
+    </div>
+
+    <div id="onboardingModal" class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="bg-zinc-950 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-zinc-900 relative flex flex-col max-h-[90vh]">
+            <div id="stepName" class="flex flex-col gap-5 my-auto">
+                <div class="text-center">
+                    <i class="fa-solid fa-fingerprint text-white text-4xl mb-2"></i>
+                    <h3 class="text-lg font-black text-white uppercase tracking-wider">Kenalan Dulu</h3>
+                    <p class="text-[11px] text-zinc-500">Tulis nama panggilan kamu di bawah buat didaftarin ke dalam enkripsi database lokal.</p>
+                </div>
+                <input type="text" id="usernameInput" placeholder="Ketik nama keren kamu di sini..." class="w-full text-xs bg-black border border-zinc-900 rounded-xl p-4 focus:outline-none focus:border-white text-white font-bold tracking-wide">
+                <button type="button" id="btnNextStep" class="w-full bg-white text-black font-black text-xs py-3.5 rounded-xl tracking-wider uppercase active:scale-95 transition-all">
+                    Lanjut Konfigurasi <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+            <div id="stepGuide" class="flex flex-col gap-4 hidden overflow-hidden h-full">
+                <div class="border-b border-zinc-900 pb-2 shrink-0">
+                    <h3 class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-zinc-400 animate-pulse"></i> CONTROL PROTOCOL & GUIDE
+                    </h3>
+                </div>
+                <div class="space-y-4 text-[11px] text-zinc-400 overflow-y-auto pr-1 flex-1" style="scrollbar-width: none;">
+                    <div class="bg-black p-3.5 rounded-xl border border-zinc-900 shadow-inner">
+                        <strong class="text-white block mb-1 text-[12px] uppercase tracking-wider text-zinc-200"><i class="fa-solid fa-shield-halved mr-1.5 text-zinc-400"></i> 1. Injeksi API Gateway</strong>
+                        Gunakan tombol tameng keamanan di kanan atas untuk menghubungkan API Key pribadi kamu (Groq, Gemini, OpenRouter, OpenAI).
+                    </div>
+                    <div class="bg-black p-3.5 rounded-xl border border-zinc-900 shadow-inner">
+                        <strong class="text-white block mb-1 text-[12px] uppercase tracking-wider text-zinc-200"><i class="fa-solid fa-wand-magic-sparkles mr-1.5 text-zinc-400"></i> 2. Ekosistem Fitur AI + (Plus)</strong>
+                        Tekan ikon lampiran klip kertas untuk mengaktifkan **Canva Generator AI**, Pemindaian Dokumen, Kamera, Scraper, dan Media Internal.
+                    </div>
+                    <div class="bg-black p-3.5 rounded-xl border border-zinc-900 shadow-inner">
+                        <strong class="text-white block mb-1 text-[12px] uppercase tracking-wider text-zinc-200"><i class="fa-solid fa-music mr-1.5 text-zinc-400"></i> 3. Audio Latar Steril</strong>
+                        Mekanisme penukaran lagu manual ditiadakan untuk menjamin zero-bug. Lagu akan berjalan secara otomatis (*Auto-Play Queue*).
+                    </div>
+                </div>
+                <button type="button" id="btnStartApp" class="w-full bg-gradient-to-r from-zinc-900 to-black border border-zinc-800 text-white font-black text-xs py-3.5 rounded-xl tracking-wider uppercase active:scale-95 transition-all shrink-0">
+                    Mulai Obrolan <i class="fa-solid fa-circle-check ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <video autoplay loop muted playsinline id="bg-video">
+        <source src="chat.mp4" type="video/mp4">
+    </video>
+    <header class="glass-panel w-full px-4 py-2 flex items-center justify-between shadow-lg z-50 shrink-0 border-b border-zinc-900/40 relative">
+        <div class="flex items-center gap-2">
+            <div class="w-1.5 h-1.5 rounded-full bg-white animate-ping absolute opacity-75"></div>
+            <div class="w-1.5 h-1.5 rounded-full bg-white relative neon-glow"></div>
+            <div>
+                <h1 class="text-xs font-black tracking-widest text-white neon-text uppercase">GASIMA AI</h1>
+                <p class="text-[8px] text-zinc-500 font-mono tracking-wider uppercase">BY IKIYGASIMA</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 relative">
+            <button id="dashboardMenuBtn" class="text-white hover:text-zinc-400 p-1 transition-all text-xs flex items-center gap-1.5 active:scale-95 border border-zinc-900 bg-black/40 rounded-xl px-3 shadow-sm">
+                <i class="fa-solid fa-cubes text-[10px]"></i>
+                <span class="font-bold uppercase tracking-wider text-[10px]">Menu</span>
+                <i class="fa-solid fa-chevron-down text-[7px] opacity-50"></i>
+            </button>
+            <button id="configBtn" class="text-zinc-400 hover:text-white p-1.5 text-xs border border-zinc-900 bg-zinc-950/30 rounded-xl"><i class="fa-solid fa-shield-halved"></i></button>
+            <div id="dashboardDropdown" class="absolute top-10 right-0 bg-zinc-950 rounded-2xl p-2 flex flex-col gap-1 hidden z-50 border border-zinc-800 shadow-2xl w-60">
+                <div class="px-3 py-1.5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest border-b border-zinc-900 mb-1">Ruang Diskusi</div>
+                <div id="sessionChatList" class="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1 my-1"></div>
+                <button type="button" onclick="createNewChatSession()" class="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] bg-black border border-zinc-900 text-white font-bold transition-all text-left">
+                    <i class="fa-solid fa-square-plus"></i> <span>Buat Obrolan Baru</span>
+                </button>
+                <div class="h-[1px] bg-zinc-900 my-1"></div>
+                <button type="button" id="btnOpenDiscordFrame" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-indigo-400 hover:bg-indigo-950/20 text-left transition-all">
+                    <i class="fa-brands fa-discord"></i> <span>Jaringan Discord</span>
+                </button>
+                <a href="https://webstoreigs.github.io/GASIMA-STORE/#etalase_sec" target="_blank" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs hover:bg-zinc-900/60 text-left text-zinc-300">
+                    <i class="fa-solid fa-store text-zinc-400"></i> <span>Etalase Produk</span>
+                </a>
+                <div class="h-[1px] bg-zinc-900 my-1"></div>
+                <button type="button" onclick="logoutSystem()" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-400 hover:bg-red-950/20 text-left transition-all font-semibold">
+                    <i class="fa-solid fa-power-off"></i> <span>Keluar Sistem</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full flex flex-col overflow-hidden relative">
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+        <input type="file" id="galleryInput" accept="image/*" class="hidden">
+        <input type="file" id="fileInput" accept="*/*" class="hidden">
+
+        <div id="discordFrameModal" class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+            <div class="bg-zinc-950 w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-zinc-900 text-center relative animate-fade-in">
+                <i class="fa-brands fa-discord text-indigo-400 text-4xl mb-2"></i>
+                <h4 class="text-sm font-black text-white uppercase tracking-wider">Tambah Teman Manual</h4>
+                <div class="bg-black border border-zinc-900 rounded-xl p-3 flex items-center justify-between gap-2 mb-4">
+                    <span id="discordTextId" class="text-xs font-mono font-bold text-white tracking-widest select-all">ikiyxsdd</span>
+                    <button type="button" id="btnCopyDiscord" class="bg-white text-black font-black text-[10px] px-3 py-1.5 rounded-lg uppercase tracking-wide transition-all active:scale-90 flex items-center gap-1"><i class="fa-solid fa-copy"></i> Salin ID</button>
+                </div>
+                <button type="button" id="btnCloseDiscordFrame" class="w-full bg-zinc-900 border border-zinc-800 text-zinc-400 text-[11px] py-2.5 rounded-xl uppercase tracking-wider font-bold">Tutup Jendela</button>
+            </div>
+        </div>
+
+        <div id="apiModal" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+            <div class="bg-zinc-950 w-full max-w-sm max-h-[90vh] rounded-3xl p-5 shadow-2xl border border-zinc-900 flex flex-col justify-between overflow-hidden relative">
+                <div class="overflow-y-auto pr-1 flex-1 flex flex-col gap-3" style="scrollbar-width: none;">
+                    <div class="text-center shrink-0">
+                        <span class="inline-block bg-white text-black font-black text-[9px] tracking-widest px-4 py-1 rounded-full uppercase shadow-sm">SECURITY HUB</span>
+                        <h3 class="text-xs font-black text-white mt-3 flex items-center justify-center gap-2 tracking-wider uppercase"><i class="fa-solid fa-key"></i> Kredensial Gateway API</h3>
+                    </div>
+                    <div class="bg-black border border-zinc-900 rounded-xl p-3 shrink-0">
+                        <p class="text-[10px] text-white font-bold flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-network-wired text-zinc-500"></i> Auto-Detection Activated</p>
+                        <button type="button" id="requestWaBtn" class="w-full bg-zinc-900 border border-zinc-800 hover:border-white text-white font-black text-[10px] py-2.5 rounded-lg flex items-center justify-center gap-1.5 uppercase tracking-wider transition-all active:scale-95"><i class="fa-brands fa-whatsapp text-sm"></i> Ambil Akses API Key</button>
+                    </div>
+                    <div class="flex flex-col gap-1 shrink-0">
+                        <label class="text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-1">Kunci API Utama</label>
+                        <input type="password" id="apiKeyInput" placeholder="Masukkan token API..." class="w-full text-xs bg-black border border-zinc-900 rounded-xl p-3.5 focus:outline-none focus:border-zinc-600 text-white font-mono">
+                    </div>
+                </div>
+                <div class="pt-3 border-t border-zinc-900 bg-transparent shrink-0">
+                    <button type="button" id="saveApiBtn" class="w-full bg-white text-black font-black text-xs py-3.5 rounded-xl tracking-wider uppercase shadow-md">Suntik Kunci Sistem</button>
+                </div>
+            </div>
+        </div>
+        <div id="voiceOverlayPanel" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center hidden">
+            <div class="bg-zinc-950 p-6 rounded-3xl border border-zinc-900 max-w-xs w-full text-center flex flex-col items-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-black border border-zinc-800 flex items-center justify-center animate-pulse">
+                    <i class="fa-solid fa-microphone text-white text-xl animate-bounce"></i>
+                </div>
+                <h4 class="text-xs font-black tracking-widest text-white uppercase">Mendengarkan Suara...</h4>
+                <div class="voice-wave mt-1"><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div></div>
+                <button type="button" id="stopVoiceRecordBtn" class="mt-2 px-5 py-2 bg-black border border-zinc-800 rounded-xl text-[9px] font-black tracking-wider text-zinc-300 uppercase active:scale-95 transition-all">Kunci Hasil Transkrip</button>
+            </div>
+        </div>
+
+        <div class="fixed right-4 top-20 z-40 flex flex-col gap-2">
+            <button type="button" id="scrollToTopBtn" class="w-9 h-9 rounded-xl bg-black/60 border border-zinc-800 text-white text-xs flex items-center justify-center active:scale-90 transition-all shadow-md"><i class="fa-solid fa-chevron-up"></i></button>
+            <button type="button" id="scrollToBottomBtn" class="w-9 h-9 rounded-xl bg-black/60 border border-zinc-800 text-white text-xs flex items-center justify-center active:scale-90 transition-all shadow-md"><i class="fa-solid fa-chevron-down"></i></button>
+        </div>
+
+        <div id="chatContainer" class="chat-container px-4 pt-4 pb-52 space-y-4 flex flex-col"></div>
+
+        <div id="attachMenu" class="fixed bottom-28 left-4 bg-zinc-950 rounded-2xl p-2 flex flex-col gap-1 hidden z-50 border border-zinc-900 shadow-2xl w-52 animate-fade-in">
+            <button type="button" id="btnCamera" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs hover:bg-zinc-900 text-left text-zinc-200"><i class="fa-solid fa-camera text-zinc-400"></i> <span>Kamera Perangkat</span></button>
+            <button type="button" id="btnGallery" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs hover:bg-zinc-900 text-left text-zinc-200"><i class="fa-solid fa-image text-zinc-400"></i> <span>Galeri Gambar</span></button>
+            <button type="button" id="btnFile" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs hover:bg-zinc-900 text-left text-zinc-200"><i class="fa-solid fa-folder-open text-zinc-400"></i> <span>Pilih Dokumen</span></button>
+            <button type="button" id="btnCanvaAI" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs bg-zinc-900/60 text-indigo-400 text-left font-bold"><i class="fa-solid fa-palette"></i> <span>AI Canva Design</span></button>
+            <button type="button" id="btnWebScraper" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs hover:bg-zinc-900 text-left text-zinc-300"><i class="fa-solid fa-globe text-zinc-500"></i> <span>AI Web Scraper</span></button>
+        </div>
+
+        <div id="audioStatusContainer" class="fixed bottom-28 right-4 glass-panel px-3 py-2 rounded-xl flex items-center gap-2 border border-zinc-900/60 text-[9px] font-mono text-zinc-400 z-20 pointer-events-none">
+            <i class="fa-solid fa-compact-disc text-white animate-spin" style="animation-duration: 3s;"></i> <span>AUTO PLAY ACTIVE</span>
+            <div id="visualizer" class="flex items-end gap-[2px] h-3.5 w-4">
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            </div>
+        </div>
+
+        <div id="loadingIndicator" class="fixed bottom-28 left-4 px-3 py-2 rounded-xl bg-black/80 border border-zinc-900 flex items-center gap-2 text-xs text-white hidden z-20">
+            <i class="fa-solid fa-atom animate-spin text-white"></i> <span class="neon-text uppercase text-[9px] tracking-widest">SEDANG BERPIKIR...</span>
+        </div>
+    </main>
+
+    <div class="floating-footer">
+        <div class="w-full max-w-4xl mx-auto flex flex-col gap-2">
+            <div id="pendingContainer" class="glass-panel p-2.5 rounded-xl border border-zinc-900 bg-black/60 hidden flex items-center justify-between max-w-xs ml-2 shadow-xl">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <div id="pendingIcon" class="text-white text-xs shrink-0"></div>
+                    <span id="pendingName" class="text-[10px] text-zinc-400 font-mono truncate max-w-[170px]">file.io</span>
+                </div>
+                <button type="button" id="clearPendingBtn" class="text-zinc-500 hover:text-white p-1"><i class="fa-solid fa-xmark text-xs"></i></button>
+            </div>
+            <footer class="glass-panel w-full p-2 rounded-[22px] border border-zinc-800/60 bg-black/70 shadow-2xl neon-glow">
+                <div class="flex gap-1.5 items-center">
+                    <button type="button" id="attachBtn" class="text-zinc-400 hover:text-white w-11 h-11 rounded-xl flex items-center justify-center border border-zinc-900 bg-black/30 shrink-0 transition-all"><i class="fa-solid fa-plus text-sm"></i></button>
+                    <button type="button" id="voiceInputBtn" class="text-zinc-400 hover:text-white w-11 h-11 rounded-xl flex items-center justify-center border border-zinc-900 bg-black/30 shrink-0 transition-all"><i class="fa-solid fa-microphone text-sm"></i></button>
+                    <div class="flex-1 bg-black/40 rounded-xl border border-zinc-900 flex items-center px-3 focus-within:border-zinc-600 transition-all">
+                        <input type="text" id="userInput" autocomplete="off" placeholder="Tanya apa aja di sini, aku siap bantu..." class="w-full py-3.5 text-xs text-white bg-transparent focus:outline-none placeholder-zinc-800 font-medium tracking-wide">
+                    </div>
+                    <button type="button" id="submitMsgBtn" class="bg-white text-black w-11 h-11 rounded-xl flex items-center justify-center active:scale-90 transition-all shrink-0 font-bold shadow-md"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // MEMOTONG VARIABEL DAN MEMINDAHKANNYA UNTUK KESEIMBANGAN TOTAL UKURAN FILE BERKAS
+        const preloader = document.getElementById('preloader');
+        const preloadProgress = document.getElementById('preload-progress');
+        const welcomeNotification = document.getElementById('welcomeNotification');
+        const welcomeUserTarget = document.getElementById('welcomeUserTarget');
+        const onboardingModal = document.getElementById('onboardingModal');
+        const stepName = document.getElementById('stepName');
+        const stepGuide = document.getElementById('stepGuide');
+        const usernameInput = document.getElementById('usernameInput');
+        const btnNextStep = document.getElementById('btnNextStep');
+        const btnStartApp = document.getElementById('btnStartApp');
+        const dashboardMenuBtn = document.getElementById('dashboardMenuBtn');
+        const dashboardDropdown = document.getElementById('dashboardDropdown');
+        const configBtn = document.getElementById('configBtn');
+        const apiModal = document.getElementById('apiModal');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveApiBtn = document.getElementById('saveApiBtn');
+        const requestWaBtn = document.getElementById('requestWaBtn');
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const submitMsgBtn = document.getElementById('submitMsgBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const visualizer = document.getElementById('visualizer');
+        const audioStatusContainer = document.getElementById('audioStatusContainer');
+        const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+        const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
+        const attachBtn = document.getElementById('attachBtn');
+        const attachMenu = document.getElementById('attachMenu');
+        const cameraInput = document.getElementById('cameraInput');
+        const galleryInput = document.getElementById('galleryInput');
+        const fileInput = document.getElementById('fileInput');
+        const pendingContainer = document.getElementById('pendingContainer');
+        const pendingIcon = document.getElementById('pendingIcon');
+        const pendingName = document.getElementById('pendingName');
+        const clearPendingBtn = document.getElementById('clearPendingBtn');
+        const voiceInputBtn = document.getElementById('voiceInputBtn');
+        const voiceOverlayPanel = document.getElementById('voiceOverlayPanel');
+        const stopVoiceRecordBtn = document.getElementById('stopVoiceRecordBtn');
+        const btnOpenDiscordFrame = document.getElementById('btnOpenDiscordFrame');
+        const discordFrameModal = document.getElementById('discordFrameModal');
+        const btnCloseDiscordFrame = document.getElementById('btnCloseDiscordFrame');
+        const btnCopyDiscord = document.getElementById('btnCopyDiscord');
+        const sessionChatList = document.getElementById('sessionChatList');
+
+        let apiKey = localStorage.getItem('gasima_universal_key') || '';
+        if(apiKey) apiKeyInput.value = apiKey;
+        let activePendingFile = null, activeFileBase64 = null, isSystemSpeaking = false, isVoiceRecording = false;
+        let clientUsername = localStorage.getItem('gasima_user_name') || '';
+        let chatSessions = JSON.parse(localStorage.getItem('ai_chat_sessions')) || {};
+        let activeSessionId = localStorage.getItem('ai_active_session_id') || '';
+
+        // PLAYLIST OTOMATIS TANPA PILIHAN SKIP LAGI (MURNI AUTO-LOOP QUEUE)
+        const audioPlaylist = ['sound1.mp3', 'sound2.mp3', 'sound3.mp3'];
+        let currentTrackIndex = 0;
+        let globalAudioLoop = new Audio(audioPlaylist[currentTrackIndex]);
+
+        function bindAudioEvents() { globalAudioLoop.addEventListener('ended', onTrackEndedHandler); }
+        function onTrackEndedHandler() { playNextTrackSequential(); }
+        
+        function playNextTrackSequential() {
+            globalAudioLoop.removeEventListener('ended', onTrackEndedHandler);
+            globalAudioLoop.pause();
+            currentTrackIndex = (currentTrackIndex + 1) % audioPlaylist.length;
+            globalAudioLoop = new Audio(audioPlaylist[currentTrackIndex]); 
+            bindAudioEvents();
+            if (!isSystemSpeaking && !isVoiceRecording) { globalAudioLoop.play().catch(e => {}); }
+        }
+        
+        function startGlobalAudio() { globalAudioLoop.play().then(() => { visualizer.classList.remove('hidden'); }).catch(e => {}); }
+        function playEffect(src) { const fx = new Audio(src); fx.volume = 0.3; fx.play().catch(() => {}); }
+        function pauseMusic() { if(!globalAudioLoop.paused) globalAudioLoop.pause(); }
+        function resumeMusic() { if(globalAudioLoop.paused && !isSystemSpeaking && !isVoiceRecording) { globalAudioLoop.play().catch(e => {}); } }
+
+        scrollToTopBtn.addEventListener('click', () => { chatContainer.scrollTop = 0; });
+        scrollToBottomBtn.addEventListener('click', () => { chatContainer.scrollTop = chatContainer.scrollHeight; });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initMultiChatSystem(); bindAudioEvents(); startGlobalAudio();
+            document.body.addEventListener('click', () => { if(globalAudioLoop.paused && !isSystemSpeaking && !isVoiceRecording) startGlobalAudio(); }, { once: true });
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 1; preloadProgress.style.width = `${progress}%`;
+                if (progress >= 100) {
+                    clearInterval(progressInterval); preloader.classList.add('opacity-0');
+                    setTimeout(() => { preloader.classList.add('hidden'); checkUserOnboarding(); }, 700);
+                }
+            }, 160); // LOADING 16 DETIK OPERASIONAL
+        });
+
+        function triggerWelcomeNotification(name) {
+            welcomeUserTarget.innerText = `Halo ${name}! Aku siap nemenin kamu sekarang.`;
+            welcomeNotification.style.opacity = "1"; welcomeNotification.style.transform = "translate(-50%, 0px)";
+            setTimeout(() => { welcomeNotification.style.opacity = "0"; welcomeNotification.style.transform = "translate(-50%, -100px)"; }, 5000);
+        }
+        function initMultiChatSystem() {
+            if (Object.keys(chatSessions).length === 0) {
+                const defaultId = 'session_' + Date.now(); chatSessions[defaultId] = { title: "Obrolan Utama", memory: [] };
+                activeSessionId = defaultId; localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions)); localStorage.setItem('ai_active_session_id', defaultId);
+            }
+            renderSessionList(); loadActiveSessionChat();
+        }
+        function renderSessionList() {
+            sessionChatList.innerHTML = '';
+            Object.keys(chatSessions).forEach(id => {
+                const btn = document.createElement('button'); btn.type = 'button';
+                btn.className = `w-full text-left px-3 py-1.5 rounded-lg text-[11px] truncate transition-all ${id === activeSessionId ? 'bg-black border border-zinc-800 text-white font-bold' : 'text-zinc-500 hover:bg-black/50'}`;
+                btn.innerHTML = `<i class="fa-solid fa-message mr-1.5 opacity-70"></i> ${chatSessions[id].title}`;
+                btn.onclick = () => {
+                    playEffect('sound2.mp3'); activeSessionId = id; localStorage.setItem('ai_active_session_id', id);
+                    renderSessionList(); loadActiveSessionChat(); dashboardDropdown.classList.add('hidden');
+                };
+                sessionChatList.appendChild(btn);
+            });
+        }
+        function createNewChatSession() {
+            playEffect('sound3.mp3'); const newId = 'session_' + Date.now();
+            chatSessions[newId] = { title: `Obrolan Baru #${Object.keys(chatSessions).length + 1}`, memory: [] };
+            activeSessionId = newId; localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions)); localStorage.setItem('ai_active_session_id', newId);
+            renderSessionList(); loadActiveSessionChat(); dashboardDropdown.classList.add('hidden');
+        }
+        function loadActiveSessionChat() {
+            chatContainer.innerHTML = ''; const session = chatSessions[activeSessionId];
+            const wrapper = document.createElement('div'); wrapper.className = 'flex justify-start w-full';
+            wrapper.innerHTML = `
+                <div class="rounded-[24px] p-4 max-w-[88%] text-xs text-zinc-300 leading-relaxed border border-zinc-900 bg-transparent shadow-md">
+                    <p class="font-black text-white mb-1.5 tracking-widest flex items-center gap-1.5 uppercase text-[9px] neon-text"><i class="fa-solid fa-brain text-[9px]"></i> GASIMA AI CORE</p>
+                    <span>Halo ${clientUsername || 'Teman'}, senang bisa terhubung kembali! Ada yang mau dibahas dengan GASIMA AI hari ini?</span>
+                </div>
+            `;
+            chatContainer.appendChild(wrapper);
+            if (session && session.memory) { session.memory.forEach(msg => { appendMessageUI(msg.text, msg.isUser, msg.attachmentName); }); }
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        function checkUserOnboarding() { if (!clientUsername) { onboardingModal.classList.remove('hidden'); } else { loadActiveSessionChat(); resumeMusic(); triggerWelcomeNotification(clientUsername); } }
+
+        btnNextStep.addEventListener('click', () => {
+            playEffect('sound2.mp3'); const name = usernameInput.value.trim();
+            if (name) { clientUsername = name; localStorage.setItem('gasima_user_name', name); stepName.classList.add('hidden'); stepGuide.classList.remove('hidden'); }
+            else { alert("Ketik nama kamu dulu ya."); }
+        });
+        btnStartApp.addEventListener('click', () => {
+            playEffect('sound3.mp3'); onboardingModal.classList.add('hidden'); loadActiveSessionChat(); resumeMusic(); triggerWelcomeNotification(clientUsername);
+        });
+
+        dashboardMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); playEffect('sound2.mp3'); dashboardDropdown.toggle('hidden'); });
+        document.addEventListener('click', () => { dashboardDropdown.classList.add('hidden'); attachMenu.classList.add('hidden'); });
+        btnOpenDiscordFrame.addEventListener('click', () => { playEffect('sound2.mp3'); dashboardDropdown.classList.add('hidden'); discordFrameModal.classList.remove('hidden'); });
+        btnCloseDiscordFrame.addEventListener('click', () => { discordFrameModal.classList.add('hidden'); });
+        btnCopyDiscord.addEventListener('click', () => { const textId = document.getElementById('discordTextId').innerText; navigator.clipboard.writeText(textId).then(() => { playEffect('sound3.mp3'); alert(`ID Discord disalin!`); }); });
+        configBtn.addEventListener('click', () => { playEffect('sound2.mp3'); apiModal.classList.toggle('hidden'); });
+        requestWaBtn.addEventListener('click', () => { playEffect('sound2.mp3'); window.open('https://whatsapp.com/channel/0029Vb8c5z7002TE9OHIPx38', '_blank'); });
+        saveApiBtn.addEventListener('click', () => {
+            playEffect('sound3.mp3'); const token = apiKeyInput.value.trim();
+            if(token) { localStorage.setItem('gasima_universal_key', token); apiKey = token; apiModal.classList.add('hidden'); } else { alert("Masukkan token API Key."); }
+        });
+
+        attachBtn.addEventListener('click', (e) => { e.stopPropagation(); playEffect('sound2.mp3'); attachMenu.classList.toggle('hidden'); });
+        document.getElementById('btnCamera').addEventListener('click', () => cameraInput.click());
+        document.getElementById('btnGallery').addEventListener('click', () => galleryInput.click());
+        document.getElementById('btnFile').addEventListener('click', () => fileInput.click());
+        
+        // INTEGRASI DAN TRIGGER PENGAKTIFAN KREASI CANVA AI & LAINNYA
+        document.getElementById('btnCanvaAI').addEventListener('click', () => { attachMenu.classList.add('hidden'); userInput.value = "/canva buatkan saya desain poster minimalis bertema teknologi masa depan "; userInput.focus(); });
+        document.getElementById('btnWebScraper').addEventListener('click', () => { attachMenu.classList.add('hidden'); userInput.value = "/scrape https://url-website-target.com "; userInput.focus(); });
+
+        function setPendingFile(file, iconHtml) {
+            activePendingFile = file; pendingIcon.innerHTML = iconHtml; pendingName.innerText = file.name; pendingContainer.classList.remove('hidden');
+            const reader = new FileReader(); reader.onloadend = () => { activeFileBase64 = reader.result; }; reader.readAsDataURL(file);
+        }
+        clearPendingBtn.addEventListener('click', () => { activePendingFile = null; activeFileBase64 = null; pendingContainer.classList.add('hidden'); });
+        cameraInput.addEventListener('change', () => { if(cameraInput.files[0]) setPendingFile(cameraInput.files[0], '<i class="fa-solid fa-camera"></i>'); });
+        galleryInput.addEventListener('change', () => { if(galleryInput.files[0]) setPendingFile(galleryInput.files[0], '<i class="fa-solid fa-image"></i>'); });
+        fileInput.addEventListener('change', () => { if(fileInput.files[0]) setPendingFile(fileInput.files[0], '<i class="fa-solid fa-file"></i>'); });
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; const recognition = new SpeechRecognition();
+            recognition.lang = 'id-ID'; recognition.continuous = true; recognition.interimResults = true; let finalTranscript = '';
+            voiceInputBtn.addEventListener('click', async () => {
+                playEffect('sound2.mp3');
+                try { await navigator.mediaDevices.getUserMedia({ audio: true }); finalTranscript = ''; isVoiceRecording = true; pauseMusic(); voiceOverlayPanel.classList.remove('hidden'); recognition.start(); }
+                catch (err) { alert('Akses mic ditolak.'); }
+            });
+            stopVoiceRecordBtn.addEventListener('click', () => { playEffect('sound3.mp3'); recognition.stop(); isVoiceRecording = false; voiceOverlayPanel.classList.add('hidden'); resumeMusic(); });
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript; else interimTranscript += event.results[i][0].transcript; }
+                userInput.value = finalTranscript || interimTranscript;
+            };
+            recognition.onerror = () => { voiceOverlayPanel.classList.add('hidden'); resumeMusic(); };
+        }
+
+        function speakAIText(text, iconBtn) {
+            if ('speechSynthesis' in window) {
+                if (isSystemSpeaking) { window.speechSynthesis.cancel(); isSystemSpeaking = false; iconBtn.innerHTML = '<i class="fa-solid fa-volume-high text-xs"></i>'; resumeMusic(); return; }
+                isSystemSpeaking = true; pauseMusic(); iconBtn.innerHTML = '<i class="fa-solid fa-circle-stop text-xs text-white"></i>';
+                const utterance = new SpeechSynthesisUtterance(text.replace(/\*/g, '')); utterance.lang = 'id-ID';
+                utterance.onend = () => { isSystemSpeaking = false; iconBtn.innerHTML = '<i class="fa-solid fa-volume-high text-xs"></i>'; resumeMusic(); };
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        function appendMessageUI(text, isUser = false, attachmentName = null) {
+            const wrapper = document.createElement('div'); wrapper.className = isUser ? 'flex justify-end w-full' : 'flex justify-start w-full';
+            const bubble = document.createElement('div');
+            bubble.className = isUser ? 'bg-gradient-to-br from-zinc-800 via-zinc-900 to-black text-white rounded-[24px] rounded-tr-none p-4 max-w-[85%] text-xs border border-zinc-700 shadow-md font-medium' : 'bg-transparent text-zinc-200 p-3.5 max-w-[85%] text-xs rounded-[24px] rounded-tl-none border border-zinc-900 relative';
+            if (!isUser) {
+                const flexHead = document.createElement('div'); flexHead.className = 'flex justify-between items-center mb-1.5 gap-6';
+                flexHead.innerHTML = `<p class="font-black text-white tracking-wider text-[10px] uppercase"><i class="fa-solid fa-microchip text-[9px]"></i> GASIMA AI CORE</p>`;
+                const voiceBtn = document.createElement('button'); voiceBtn.type = 'button'; voiceBtn.className = 'text-zinc-400 hover:text-white px-2 bg-black/40 border border-zinc-900 rounded-lg h-6 flex items-center justify-center';
+                voiceBtn.innerHTML = '<i class="fa-solid fa-volume-high text-xs"></i>'; voiceBtn.onclick = () => { playEffect('sound2.mp3'); speakAIText(text, voiceBtn); };
+                flexHead.appendChild(voiceBtn); bubble.appendChild(flexHead);
+            }
+            if (attachmentName) {
+                const attachNode = document.createElement('div'); attachNode.className = 'bg-black/80 border border-zinc-900 rounded-xl p-2 mb-2 font-mono text-[9px] text-white flex items-center gap-1.5';
+                attachNode.innerHTML = `<i class="fa-solid fa-paperclip"></i> Berkas: ${attachmentName}`; bubble.appendChild(attachNode);
+            }
+            const messageText = document.createElement('span'); messageText.innerHTML = text.replace(/\n/g, '<br>'); bubble.appendChild(messageText); wrapper.appendChild(bubble); chatContainer.appendChild(wrapper); chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        function saveMessageToSession(text, isUser = false, attachmentName = null) {
+            if (chatSessions[activeSessionId]) {
+                chatSessions[activeSessionId].memory.push({ text, isUser, attachmentName }); localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions));
+                if (isUser && chatSessions[activeSessionId].memory.filter(m => m.isUser).length === 1) { chatSessions[activeSessionId].title = text.substring(0, 18) + '...'; localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions)); renderSessionList(); }
+            }
+        }
+        async function handleSendMessageEngine() {
+            const prompt = userInput.value.trim(); if (!apiKey) { apiModal.classList.remove('hidden'); playEffect('sound2.mp3'); userInput.value = ''; return; }
+            if (!prompt && !activeFileBase64) return; 
+            const fileToUpload = activePendingFile, fileBase64Data = activeFileBase64, fileName = fileToUpload ? fileToUpload.name : null;
+            appendMessageUI(prompt || `Memproses berkas ${fileName}...`, true, fileName); saveMessageToSession(prompt || `Memproses berkas ${fileName}...`, true, fileName);
+            userInput.value = ''; clearPendingBtn.click(); loadingIndicator.classList.remove('hidden');
+            let msgContent = []; if(prompt) msgContent.push({ type: "text", text: prompt }); if(fileBase64Data) msgContent.push({ type: "image_url", image_url: { url: fileBase64Data } });
+            let messagesPayload = [{ role: "system", content: "Kamu adalah GASIMA AI dengan integrasi penuh Canva AI Core, web scraping, dan vision image. Jawab santai, akrab, dan super cerdas." }];
+            const currentMemory = chatSessions[activeSessionId]?.memory || []; currentMemory.slice(-12).forEach(m => { messagesPayload.push({ role: m.isUser ? "user" : "assistant", content: m.text }); }); messagesPayload.push({ role: "user", content: msgContent });
+            let endpointUrl = 'https://api.groq.com/openai/v1/chat/completions', chosenModel = fileBase64Data ? "llama-3.2-11b-vision-preview" : "llama-3.3-70b-versatile";
+            if (apiKey.startsWith('sk-or-') || apiKey.includes('openrouter')) { endpointUrl = 'https://openrouter.ai/api/v1/chat/completions'; chosenModel = fileBase64Data ? "google/gemini-2.5-flash" : "meta-llama/llama-3.3-70b-instruct"; }
+            else if (apiKey.startsWith('sk-proj-') || (apiKey.startsWith('sk-') && !apiKey.includes('xai') && !apiKey.includes('nvapi'))) { endpointUrl = 'https://api.openai.com/v1/chat/completions'; chosenModel = fileBase64Data ? "gpt-4o" : "gpt-4o-mini"; }
+            else if (apiKey.startsWith('sk-') && apiKey.includes('xai')) { endpointUrl = 'https://api.x.ai/v1/chat/completions'; chosenModel = "grok-2-1212"; }
+            else if (apiKey.startsWith('nvapi-') || apiKey.includes('nvidia')) { endpointUrl = 'https://integrate.api.nvidia.com/v1/chat/completions'; chosenModel = fileBase64Data ? "nvidia/llama-3.2-11b-vision-instruct" : "meta/llama-3.3-70b-instruct"; }
+            else if (apiKey.startsWith('AIzaSy')) { endpointUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`; }
+            try {
+                let response;
+                if (apiKey.startsWith('AIzaSy')) {
+                    let parts = []; if(prompt) parts.push({ text: prompt }); if(fileBase64Data) { parts.push({ inlineData: { mimeType: fileBase64Data.split(';')[0].split(':')[1], data: fileBase64Data.split(',')[1] } }); }
+                    response = await fetch(endpointUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: parts }] }) });
+                    const geminiData = await response.json(); if(response.ok) { const replyText = geminiData.candidates[0].content.parts[0].text; appendMessageUI(replyText, false); saveMessageToSession(replyText, false); }
+                } else {
+                    response = await fetch(endpointUrl, { method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: chosenModel, messages: messagesPayload, temperature: 0.7 }) });
+                    const data = await response.json(); if (response.ok) { const replyText = data.choices[0].message.content; appendMessageUI(replyText, false); saveMessageToSession(replyText, false); } else { appendMessageUI(`Ada kendala respon dari API Key kamu: ${data.error?.message || 'Token tidak valid.'}`, false); }
+                }
+            } catch (err) { appendMessageUI('Koneksi terputus dari jalur komunikasi gateway AI.', false); } finally { loadingIndicator.classList.add('hidden'); }
+        }
+        submitMsgBtn.addEventListener('click', handleSendMessageEngine);
+        userInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); handleSendMessageEngine(); } });
+        function logoutSystem() { playEffect('sound2.mp3'); if(confirm("Kamu yakin mau logout? Semua chat history lokal bakalan dihapus total.")) { localStorage.clear(); window.location.reload(); } }
+    </script>
+</body>
+</html>
